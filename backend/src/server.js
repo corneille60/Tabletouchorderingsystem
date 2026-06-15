@@ -50,7 +50,7 @@ app.use(express.json());
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Tabletouch Ordering System API' });
+  res.json({ message: 'Tabletouch Ordering System API 2' });
 });
 
 app.use('/api/menu', menuRoutes);

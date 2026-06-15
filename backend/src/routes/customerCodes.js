@@ -70,11 +70,12 @@ router.get('/:code/access', async (req, res) => {
 
     const orderCount = Number(summary.order_count || 0);
     const unpaidCount = Number(summary.unpaid_count || 0);
-    const allowed = orderCount > 0 && unpaidCount === 0;
+    const allowed = orderCount >= 0 && unpaidCount === 0;
 
     if (allowed) {
       await db.execute('UPDATE customer_codes SET status = ? WHERE code = ?', ['3', code]);
     }
+    console.log("allowed: ",allowed)
 
     res.json({
       allowed,
