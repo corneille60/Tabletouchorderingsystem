@@ -24,12 +24,12 @@ Servo doorServo;
 const int SERVO_PIN = D5;
 
 // Put your WiFi details here.
-const char* WIFI_SSID = "Pacifiq";
-const char* WIFI_PASSWORD = "123456789";
+const char* WIFI_SSID = "Cyuzuzo";
+const char* WIFI_PASSWORD = "1234512345";
 
 // Use your computer/server LAN IP. Do not use localhost on NodeMCU.
 // Example: http://192.168.1.50:4000
-const String API_BASE_URL = "http://10.16.13.34:4000";
+const String API_BASE_URL = "http://10.19.83.34:4000";
 
 String enteredCode = "";
 
