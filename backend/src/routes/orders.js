@@ -9,9 +9,17 @@ router.post('/', async (req, res) => {
   if (!customer_code || !table_no || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'customer_code, table_no and items are required' });
   }
+  
 
   const connection = await db.getConnection();
   await connection.beginTransaction();
+  console.log("starting")
+  const [code] = await connection.query("SELECT * FROM customer_codes WHERE code = ? and status = '3'", [customer_code]);
+  console.log("data: ",code[0]);
+  console.log("skipped though")
+  if(code){
+    return res.status(400).json({error: "Expired customer code can not make an order"})
+  }
 
   try {
     const itemIds = items.map((item) => item.menu_id);

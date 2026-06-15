@@ -189,6 +189,10 @@ function App() {
     } catch (error) {
       console.error(error);
       setMessage('Unable to submit order.');
+      if(error?.response?.status === 400){
+        console.log(error?.response?.data);
+        setMessage(error?.response?.data?.error);
+      }
     } finally {
       setLoading(false);
     }
