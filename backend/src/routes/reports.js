@@ -1,9 +1,10 @@
 import express from 'express';
 import db from '../db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole('manager'), async (req, res) => {
   try {
     const [[{ total_orders }]] = await db.query('SELECT COUNT(*) AS total_orders FROM orders');
     const [[{ pending_orders }]] = await db.query("SELECT COUNT(*) AS pending_orders FROM orders WHERE status = 'pending'");

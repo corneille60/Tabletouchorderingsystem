@@ -25,6 +25,7 @@ export default function StaffDashboard({
   loading,
   message
 }) {
+  const token = user?.token;
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'receptionist' });
   const [tableNo, setTableNo] = useState('1');
   const [managerTab, setManagerTab] = useState('orders');
@@ -89,7 +90,7 @@ export default function StaffDashboard({
 
   const loadPayments = async () => {
     try {
-      const result = await fetchPayments();
+      const result = await fetchPayments(token);
       setPayments(result.payments || []);
     } catch (error) {
       console.error(error);
@@ -99,7 +100,7 @@ export default function StaffDashboard({
 
   const loadReports = async () => {
     try {
-      const result = await fetchReports();
+      const result = await fetchReports(token);
       setReports(result);
     } catch (error) {
       console.error(error);
@@ -134,7 +135,7 @@ export default function StaffDashboard({
       data.append('type', formData.type);
       data.append('image', formData.image);
 
-      await createMenuItem(data);
+      await createMenuItem(data, token);
       await onReloadMenu();
 
       setUploadMessage('✓ Menu item added successfully!');
@@ -182,7 +183,7 @@ export default function StaffDashboard({
         data.append('image', formData.image);
       }
 
-      await updateMenuItem(editingItem.id, data);
+      await updateMenuItem(editingItem.id, data, token);
       await onReloadMenu();
       setMenuMessage('✓ Menu item updated successfully!');
       setShowMenuForm(false);
@@ -199,7 +200,7 @@ export default function StaffDashboard({
   const handleDeleteMenuItem = async (id) => {
     if (!window.confirm('Delete this menu item?')) return;
     try {
-      await deleteMenuItem(id);
+      await deleteMenuItem(id, token);
       await onReloadMenu();
       setMenuMessage('✓ Menu item deleted successfully!');
       setTimeout(() => setMenuMessage(''), 3000);

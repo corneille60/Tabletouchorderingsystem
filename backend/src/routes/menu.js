@@ -3,6 +3,7 @@ import db from '../db.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add new menu item with image upload
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', requireAuth, requireRole('manager'), upload.single('image'), async (req, res) => {
   try {
     const { name, price, description, type } = req.body;
     
@@ -92,7 +93,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     }
   });
 
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', requireAuth, requireRole('manager'), upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, price, description, type } = req.body;
@@ -139,7 +140,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('manager'), async (req, res) => {
   try {
     const { id } = req.params;
     const [result] = await db.query('DELETE FROM menu WHERE id = ?', [id]);

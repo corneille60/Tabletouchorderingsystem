@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/all', async (req, res) => {
+router.get('/all', requireAuth, requireRole(['cook', 'barman', 'manager', 'receptionist']), async (req, res) => {
   const { type, status } = req.query;
 
   try {
@@ -127,7 +128,7 @@ router.get('/all', async (req, res) => {
   }
 });
 
-router.post('/item/:id/status', async (req, res) => {
+router.post('/item/:id/status', requireAuth, requireRole(['cook', 'barman', 'manager']), async (req, res) => {
   const { id } = req.params;
   const { status, ready_time } = req.body;
 

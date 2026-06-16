@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -7,7 +8,7 @@ function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('receptionist'), async (req, res) => {
   const { status = '0', table_no } = req.body;
   const code = generateCode();
 
@@ -23,7 +24,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole(['manager', 'receptionist']), async (req, res) => {
   const { all } = req.query;
 
   try {

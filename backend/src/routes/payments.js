@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db.js';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ function getFlutterwaveHeaders() {
 }
 
 function buildTxRef(customerCode) {
-  return `TT-${customerCode}-${Date.now()}-${uuidv4().slice(0, 8)}`;
+  const safeCustomerCode = String(customerCode || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  return `TT-${safeCustomerCode || 'UNKNOWN'}-${Date.now()}-${uuidv4().slice(0, 8)}`;
 }
 
 function getAuthorizationUrl(responseData) {
@@ -55,6 +57,11 @@ function getFlutterwaveCurrency(transaction) {
 
 function getFlutterwaveTxRef(transaction) {
   return transaction?.tx_ref || transaction?.txRef || transaction?.flw_ref || null;
+}
+
+function isFlutterwaveTransactionNotFound(error) {
+  return error?.response?.data?.message === 'No transaction was found for this id'
+    || error?.response?.data?.error === 'No transaction was found for this id';
 }
 
 async function recordSuccessfulPayment({ customer_code, phone_number, amount }) {
@@ -91,11 +98,11 @@ router.post('/momo/request', async (req, res) => {
   try {
     const txRef = buildTxRef(customer_code);
     const payload = {
-      phone_number,
+      phone_number: String(phone_number).trim(),
       amount: Number(amount),
       currency: 'RWF',
-      email: email || FLUTTERWAVE_CUSTOMER_EMAIL,
-      fullname: fullname || `Tabletouch ${customer_code}`,
+      email: String(email || FLUTTERWAVE_CUSTOMER_EMAIL).trim(),
+      fullname: String(fullname || `Tabletouch ${customer_code}`).trim(),
       tx_ref: txRef,
       meta: {
         customer_code,
@@ -130,9 +137,10 @@ router.post('/momo/request', async (req, res) => {
 router.post('/momo/status/:txRef', async (req, res) => {
   const { txRef } = req.params;
   const { customer_code, phone_number, amount } = req.body;
+  const normalizedTxRef = String(txRef || '').trim();
 
-  if (!customer_code || !phone_number || !amount) {
-    return res.status(400).json({ error: 'customer_code, phone_number, and amount are required' });
+  if (!normalizedTxRef || !customer_code || !phone_number || !amount) {
+    return res.status(400).json({ error: 'tx_ref, customer_code, phone_number, and amount are required' });
   }
 
   try {
@@ -140,7 +148,7 @@ router.post('/momo/status/:txRef', async (req, res) => {
       `${FLUTTERWAVE_API_URL}/transactions/verify_by_reference`,
       {
         headers: getFlutterwaveHeaders(),
-        params: { tx_ref: txRef },
+        params: { tx_ref: normalizedTxRef },
       }
     );
 
@@ -152,11 +160,11 @@ router.post('/momo/status/:txRef', async (req, res) => {
     const verified = ['successful', 'success'].includes(transactionStatus)
       && transactionCurrency === 'RWF'
       && transactionAmount >= Number(amount)
-      && transactionTxRef === txRef;
+      && transactionTxRef === normalizedTxRef;
 
     if (!verified) {
       return res.json({
-        tx_ref: txRef,
+        tx_ref: normalizedTxRef,
         status: transactionStatus || 'pending',
         verified: false,
         verification: {
@@ -165,7 +173,7 @@ router.post('/momo/status/:txRef', async (req, res) => {
           amount: transactionAmount || null,
           tx_ref: transactionTxRef || null,
           expected_amount: Number(amount),
-          expected_tx_ref: txRef,
+          expected_tx_ref: normalizedTxRef,
         },
         flutterwave: response.data,
       });
@@ -174,12 +182,21 @@ router.post('/momo/status/:txRef', async (req, res) => {
     const payment = await recordSuccessfulPayment({ customer_code, phone_number, amount });
     res.json({
       ...payment,
-      tx_ref: txRef,
+      tx_ref: normalizedTxRef,
       status: transactionStatus,
       verified: true,
       flutterwave: response.data,
     });
   } catch (error) {
+    if (isFlutterwaveTransactionNotFound(error)) {
+      return res.json({
+        tx_ref: normalizedTxRef,
+        status: 'pending',
+        verified: false,
+        flutterwave: error.response.data,
+      });
+    }
+
     console.error('Flutterwave MoMo status check failed:', error?.response?.data || error.message);
     res.status(500).json({
       error: 'Could not verify Flutterwave payment status',
@@ -203,8 +220,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Fetch all payments (existing)
-router.get('/', async (req, res) => {
+// Fetch all payments (staff only)
+router.get('/', requireAuth, requireRole(['manager', 'receptionist']), async (req, res) => {
   try {
     const [payments] = await db.query(
       `SELECT p.id, p.customer_code, p.phone_number, p.amount, p.payment_date AS created_at

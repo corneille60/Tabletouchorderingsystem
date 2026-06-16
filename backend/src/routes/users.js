@@ -1,9 +1,10 @@
 import express from 'express';
 import db from '../db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole(['manager', 'receptionist']), async (req, res) => {
   try {
     const [rows] = await db.query('SELECT id, username, role FROM users ORDER BY role, username');
     res.json(rows);
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole('manager'), async (req, res) => {
   const { username, password, role } = req.body;
 
   if (!username || !password || !role) {
@@ -25,7 +26,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ id: result.insertId, username, role });
   } catch (error) {
     console.error('Create user failed', error);
-    res.status(500).json({ error: 'Unable to create user' });
+    res.status(500).json({ error: 'Unable to create staff user' });
   }
 });
 

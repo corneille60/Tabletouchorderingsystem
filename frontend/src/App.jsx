@@ -8,6 +8,7 @@ import {
   requestMomoPayment,
   verifyMomoPayment,
   login,
+  logout,
   fetchStaffOrders,
   updateOrderItemStatus,
   fetchUsers,
@@ -148,9 +149,10 @@ function App() {
   const removeFromCart = (menu_id) => setCart((current) => current.filter((item) => item.menu_id !== menu_id));
 
   const handleGenerateCode = async (tableNo) => {
+    const token = user?.token;
     setLoading(true);
     try {
-      const result = await createCustomerCode(tableNo);
+      const result = await createCustomerCode(tableNo, token);
       setCustomerCode(result.code);
       setMessage(`New customer code generated: ${result.code} (Table ${result.table_no})`);
       if (user?.role === 'receptionist') {
@@ -397,6 +399,9 @@ function App() {
     try {
       const result = await login({ username, password });
       setUser(result);
+      if (result.token) {
+        localStorage.setItem('auth_token', result.token);
+      }
       setMessage(`Logged in as ${result.username} (${result.role})`);
       window.history.pushState({}, '', '/dashboard');
       setPage('dashboard');
@@ -408,12 +413,15 @@ function App() {
     }
   };
 
-  const goToLogin = () => {
-    setPage('login');
-    window.history.pushState({}, '', '/login');
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (user?.id && user?.token) {
+      try {
+        await logout(user.id, user.token);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    localStorage.removeItem('auth_token');
     setUser(null);
     setStaffOrders([]);
     setCustomerCodes([]);
@@ -423,20 +431,26 @@ function App() {
     setMessage('Logged out successfully.');
   };
 
+  const goToLogin = () => {
+    setPage('login');
+    window.history.pushState({}, '', '/login');
+  };
+
   const handleLoadOrders = async (role) => {
+    const token = user?.token;
     setLoading(true);
     try {
       if (role === 'cook' || role === 'barman') {
         const filter = {};
         if (role === 'cook') filter.type = 'food';
         if (role === 'barman') filter.type = 'drink';
-        const rows = await fetchStaffOrders(filter);
+        const rows = await fetchStaffOrders(filter, token);
         setStaffOrders(rows);
         return;
       }
 
       if (role === 'manager') {
-        const rows = await fetchStaffOrders({});
+        const rows = await fetchStaffOrders({}, token);
         setStaffOrders(rows);
         return;
       }
@@ -451,9 +465,10 @@ function App() {
   };
 
   const handleLoadCodes = async () => {
+    const token = user?.token;
     setLoading(true);
     try {
-      const codes = await fetchCustomerCodes();
+      const codes = await fetchCustomerCodes(token);
       setCustomerCodes(codes);
     } catch (error) {
       console.error(error);
@@ -464,9 +479,10 @@ function App() {
   };
 
   const handleLoadUsers = async () => {
+    const token = user?.token;
     setLoading(true);
     try {
-      const staff = await fetchUsers();
+      const staff = await fetchUsers(token);
       setUsers(staff);
     } catch (error) {
       console.error(error);
@@ -477,6 +493,7 @@ function App() {
   };
 
   const handleReloadMenu = async () => {
+    const token = user?.token;
     setLoading(true);
     try {
       const data = await fetchMenu();
@@ -490,9 +507,10 @@ function App() {
   };
 
   const handleCreateUser = async (payload) => {
+    const token = user?.token;
     setLoading(true);
     try {
-      await createUser(payload);
+      await createUser(payload, token);
       await handleLoadUsers();
       setMessage('Staff user created successfully.');
     } catch (error) {
@@ -504,9 +522,10 @@ function App() {
   };
 
   const handleUpdateItemStatus = async (itemId, status, readyTime = null) => {
+    const token = user?.token;
     setLoading(true);
     try {
-      await updateOrderItemStatus(itemId, { status, ready_time: readyTime });
+      await updateOrderItemStatus(itemId, { status, ready_time: readyTime }, token);
       await handleLoadOrders(user.role);
       setMessage('Order item status updated.');
     } catch (error) {
