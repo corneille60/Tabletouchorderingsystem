@@ -555,16 +555,18 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="hero-bar">
+<header className="hero-bar">
         <div>
           <p className="eyebrow">Tabletouch Restaurant</p>
           <h1>Interactive Touch Menu</h1>
           <p>Browse food and drinks, add them to cart, then place your order with a customer code.</p>
         </div>
+        <div>
+          <button className="secondary-button staff-login-button" onClick={goToLogin}>Staff Login</button>
+        </div>
         <div className="hero-panel">
           <p>Total in cart</p>
           <strong>{currency(cartTotal)}</strong>
-          <button className="secondary-button staff-login-button" onClick={goToLogin}>Staff Login</button>
           <button className="primary-button" onClick={() => setShowCheckout(true)} disabled={cart.length === 0}>Place Order</button>
         </div>
       </header>
@@ -591,7 +593,7 @@ function App() {
           ))}
         </section>
 
-        <CartSidebar
+<CartSidebar
           cart={cart}
           onUpdate={updateCart}
           onRemove={removeFromCart}
