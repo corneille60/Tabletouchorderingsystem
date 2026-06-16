@@ -408,6 +408,11 @@ function App() {
     }
   };
 
+  const goToLogin = () => {
+    setPage('login');
+    window.history.pushState({}, '', '/login');
+  };
+
   const handleLogout = () => {
     setUser(null);
     setStaffOrders([]);
@@ -559,6 +564,7 @@ function App() {
         <div className="hero-panel">
           <p>Total in cart</p>
           <strong>{currency(cartTotal)}</strong>
+          <button className="secondary-button staff-login-button" onClick={goToLogin}>Staff Login</button>
           <button className="primary-button" onClick={() => setShowCheckout(true)} disabled={cart.length === 0}>Place Order</button>
         </div>
       </header>

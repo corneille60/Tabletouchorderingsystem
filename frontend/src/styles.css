@@ -79,6 +79,10 @@ button {
   margin-bottom: 18px;
 }
 
+.staff-login-button {
+  margin-bottom: 12px;
+}
+
 .primary-button {
   display: inline-flex;
   align-items: center;
