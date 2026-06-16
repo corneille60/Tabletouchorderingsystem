@@ -13,15 +13,18 @@ router.post('/', async (req, res) => {
 
   const connection = await db.getConnection();
   await connection.beginTransaction();
-  console.log("starting")
-  const [code] = await connection.query("SELECT * FROM customer_codes WHERE code = ? and status = '3'", [customer_code]);
-  console.log("data: ",code[0]);
-  console.log("skipped though")
-  if(code){
-    return res.status(400).json({error: "Expired customer code can not make an order"})
-  }
 
   try {
+    const [expiredCodeRows] = await connection.query(
+      "SELECT id FROM customer_codes WHERE code = ? AND status = '3'",
+      [customer_code]
+    );
+
+    if (expiredCodeRows.length > 0) {
+      await connection.rollback();
+      return res.status(400).json({ error: 'Expired customer code can not make an order' });
+    }
+
     const itemIds = items.map((item) => item.menu_id);
     const placeholders = itemIds.map(() => '?').join(',');
     const [menuRows] = await connection.query(`SELECT id, price FROM menu WHERE id IN (${placeholders})`, itemIds);
